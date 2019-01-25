@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!-- © RSA, 2017 -->
+<meta charset="utf8">
+<meta name="author" content="RSA">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>esp8266 websocket</title>
+<style>
+	html, body {
+		padding: 0;
+		margin: 0;
+	}
+	
+	body > * {
+		padding: 1em 2em;
+	}
+	
+	main > * {
+		margin: 1em 0;
+	}
+	
+	#value {
+		display: inline;
+	}
+	
+	#status {
+		width: 100%;
+		height: 1em;
+	}
+	
+	.off {
+		background: red;
+	}
+	
+	.on {
+		background: lime;
+	}
+	
+	#plot {
+		height: 2em;
+		background: blue;
+	}
+</style>
+<script>
+	var DEBUG = 0;
+	var webSocket;
+	var dom = {
+		value: null,
+		plot: null,
+		status: null,
+		color: null
+	}
+	
+	function log(message){
+		if(DEBUG){
+			console.log(message);
+		}
+	}
+	
+	window.addEventListener("load", function(){
+		dom.value = document.querySelector("#value");
+		dom.status = document.querySelector("#status");
+		dom.plot = document.querySelector("#plot");
+		dom.color = document.querySelector("#color");
+		
+		webSocket = new WebSocket("ws://192.168.2.101:81");
+		webSocket.binaryType = "arraybuffer";
+		
+		webSocket.addEventListener("open", function(event) {
+			log("ws open");
+			webSocket.send("Hello Web Socket!");
+			dom.status.classList.remove("off");
+			dom.status.classList.add("on");
+		});
+		
+		webSocket.onmessage = function(event) {
+			log("ws message: " + typeof(event.data) + event.data);
+			var bytes = new Uint8Array(event.data);
+			log(bytes);
+			var val = bytes[0]*255+bytes[1];
+			log(val);
+			dom.value.innerHTML = val.toString();
+			dom.plot.style.width = val/1023*100 + "%";
+		};
+		
+		webSocket.onclose = function(event) {
+			log('wsclose');
+			dom.status.classList.remove("on");
+			dom.status.classList.add("off");
+		};
+		
+		dom.color.addEventListener("input", function(event){
+			log(event.target.value);
+			webSocket.send(event.target.value);
+		});
+	});
+</script>
+<header>
+	<h1>esp8266 webSocket</h1>
+</header>
+<main>
+	<div id="status" class="off"></div>
+	<div>value A0 is <div id="value">-1</div></div>
+	<div id="plot"></div>
+	<input id="color" type="color" />
+</main>
+<footer>
+	<p>&copy; RSA, 2017</p>
+</footer>
